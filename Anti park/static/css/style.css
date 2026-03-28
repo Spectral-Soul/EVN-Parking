@@ -1,0 +1,65 @@
+/* Glassmorphism utility */
+.glass {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #475569;
+    border-radius: 10px;
+}
+
+/* Animations */
+@keyframes neonPulse {
+    0% { box-shadow: 0 0 5px #10b981, 0 0 10px #10b981; }
+    50% { box-shadow: 0 0 15px #10b981, 0 0 20px #10b981; }
+    100% { box-shadow: 0 0 5px #10b981, 0 0 10px #10b981; }
+}
+
+@keyframes neonPulseBlue {
+    0% { box-shadow: 0 0 5px #3b82f6, 0 0 10px #3b82f6; }
+    50% { box-shadow: 0 0 15px #3b82f6, 0 0 20px #3b82f6; }
+    100% { box-shadow: 0 0 5px #3b82f6, 0 0 10px #3b82f6; }
+}
+
+@keyframes pathDraw {
+    from { stroke-dashoffset: 1000; }
+    to { stroke-dashoffset: 0; }
+}
+
+.anim-neon {
+    animation: neonPulse 2s infinite alternate;
+}
+
+.anim-neon-blue {
+    animation: neonPulseBlue 2s infinite alternate;
+}
+
+.path-animated {
+    stroke-dasharray: 10;
+    animation: pathDraw 3s linear forwards;
+}
+
+/* Transition classes */
+.hover-scale {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-scale:hover {
+    transform: scale(1.02);
+}
+
+/* Sidebar glass fade */
+.sidebar-overlay {
+    background: linear-gradient(180deg, rgba(15,23,42,0.8) 0%, rgba(15,23,42,1) 100%);
+}

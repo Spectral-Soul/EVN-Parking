@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-8 pb-12">
+    <div>
+        <h1 class="text-3xl font-bold tracking-tight text-white mb-2">My Bookings</h1>
+        <p class="text-slate-400 text-sm">View your past and active parking sessions.</p>
+    </div>
+
+    <!-- Table -->
+    <div class="glass rounded-2xl border border-white/5 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10 bg-white/5">
+                        <th class="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Slot</th>
+                        <th class="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Start Time</th>
+                        <th class="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">End Time</th>
+                        <th class="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Cost (₹)</th>
+                    </tr>
+                </thead>
+                <tbody id="bookings-body" class="divide-y divide-white/5">
+                    <!-- Dynamic rows -->
+                </tbody>
+            </table>
+        </div>
+        <div id="empty-state" class="hidden p-8 text-center text-slate-400">
+            No bookings found. Head to the dashboard to park your EV!
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        try {
+            const res = await fetch('/api/booking/history');
+            const data = await res.json();
+            
+            const tbody = document.getElementById('bookings-body');
+            const emptyState = document.getElementById('empty-state');
+            
+            if(data.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            data.forEach(b => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-white/5 transition-colors';
+                
+                const statusColor = b.status === "ACTIVE" ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" : "text-slate-400 bg-slate-400/10 border-slate-400/20";
+                
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">${b.slot_number}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                        ${new Date(b.start_time).toLocaleString()}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                        ${new Date(b.end_time).toLocaleString()}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2.5 py-1 text-xs font-medium border rounded-md ${statusColor}">${b.status}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">₹${b.estimated_price}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error('Failed to load history', e);
+        }
+    });
+</script>
+{% endblock %}

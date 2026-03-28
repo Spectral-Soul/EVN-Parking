@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-8 pb-12">
+    <div>
+        <h1 class="text-3xl font-bold tracking-tight text-white mb-2">Admin Dashboard</h1>
+        <p class="text-slate-400 text-sm">Real-time occupancy and revenue analytics.</p>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="glass p-6 rounded-2xl border border-white/5 hover-scale">
+            <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 mb-4">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+            </div>
+            <p class="text-slate-400 text-sm font-medium mb-1">Total Slots</p>
+            <h3 class="text-3xl font-bold text-white tracking-tight" id="st-total">--</h3>
+        </div>
+        
+        <div class="glass p-6 rounded-2xl border border-white/5 hover-scale">
+            <div class="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <p class="text-slate-400 text-sm font-medium mb-1">Available</p>
+            <h3 class="text-3xl font-bold text-white tracking-tight" id="st-avail">--</h3>
+        </div>
+        
+        <div class="glass p-6 rounded-2xl border border-white/5 hover-scale">
+            <div class="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center text-red-400 mb-4">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <p class="text-slate-400 text-sm font-medium mb-1">Occupied</p>
+            <h3 class="text-3xl font-bold text-white tracking-tight" id="st-occ">--</h3>
+        </div>
+        
+        <div class="glass p-6 rounded-2xl border border-white/5 hover-scale transform relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10"></div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 relative">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <p class="text-indigo-200 text-sm font-medium mb-1 relative">Revenue (₹)</p>
+            <h3 class="text-3xl font-bold text-white tracking-tight relative" id="st-rev">--</h3>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="glass p-6 rounded-2xl border border-white/5">
+        <h3 class="text-lg font-semibold text-white mb-6">Revenue Overview (7 Days)</h3>
+        <canvas id="revenueChart" height="100"></canvas>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        try {
+            const res = await fetch('/admin/stats');
+            const data = await res.json();
+            
+            document.getElementById('st-total').innerText = data.total_slots;
+            document.getElementById('st-avail').innerText = data.available_slots;
+            document.getElementById('st-occ').innerText = data.occupied_slots;
+            document.getElementById('st-rev').innerText = data.revenue;
+            
+            // Chart.js
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            
+            const labels = data.daily_revenue.map(d => d.dt).reverse();
+            const values = data.daily_revenue.map(d => d.total).reverse();
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.length ? labels : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Revenue (₹)',
+                        data: values.length ? values : [0,0,0,0,0,0,0],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+            
+        } catch (e) {
+            console.error('Failed to load stats', e);
+        }
+    });
+</script>
+{% endblock %}
