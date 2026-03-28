@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row gap-6 h-full w-full">
+    <!-- Map Area (Main) -->
+    <div class="flex-1 glass rounded-2xl flex flex-col overflow-hidden relative border border-white/5 shadow-2xl" style="min-height: 600px;">
+        <!-- Floor Switcher -->
+        <div class="absolute top-4 left-4 z-10 glass px-2 py-1 flex items-center gap-2 rounded-lg border border-white/10 shadow-lg">
+            <button onclick="switchFloor(1)" id="btn-f1" class="px-4 py-1.5 rounded-md text-sm font-medium bg-indigo-500 text-white shadow transition-all">Floor 1</button>
+            <button onclick="switchFloor(2)" id="btn-f2" class="px-4 py-1.5 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all cursor-pointer">Floor 2</button>
+        </div>
+
+        <!-- Legend -->
+        <div class="absolute top-4 right-4 z-10 glass px-4 py-3 rounded-lg flex flex-wrap gap-4 text-xs font-medium border border-white/10 text-slate-300 shadow-lg">
+            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm bg-emerald-500 shadow-[0_0_8px_#10b981]"></div> Available</div>
+            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm bg-red-500"></div> Occupied</div>
+            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm bg-blue-500 shadow-[0_0_8px_#3b82f6]"></div> EV Charging</div>
+            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm bg-yellow-500"></div> Reserved</div>
+        </div>
+
+        <!-- Zoom Controls -->
+        <div class="absolute bottom-4 left-4 z-10 flex flex-col gap-2">
+            <button onclick="mapScale = Math.min(mapScale + 0.1, 2); updateMapTransform();" class="w-10 h-10 glass rounded-lg border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition text-xl font-bold">+</button>
+            <button onclick="mapScale = Math.max(mapScale - 0.1, 0.15); updateMapTransform();" class="w-10 h-10 glass rounded-lg border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition text-xl font-bold">−</button>
+            <button onclick="mapScale = 0.35; mapPos = {x:20,y:20}; updateMapTransform();" class="w-10 h-10 glass rounded-lg border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition text-xs">FIT</button>
+        </div>
+
+        <!-- Map Container -->
+        <div id="map-container" class="w-full h-full relative overflow-hidden cursor-grab active:cursor-grabbing bg-slate-950" onwheel="zoomMap(event)">
+            <svg id="parkingMap" xmlns="http://www.w3.org/2000/svg" width="3200" height="2600" class="origin-top-left transition-transform duration-100 ease-out" style="transform: translate(20px, 20px) scale(0.35);">
+                <!-- Blueprint grid -->
+                <defs>
+                    <pattern id="blueprint-grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                        <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(59, 130, 246, 0.05)" stroke-width="0.5"/>
+                    </pattern>
+                    <pattern id="blueprint-grid-lg" width="200" height="200" patternUnits="userSpaceOnUse">
+                        <path d="M 200 0 L 0 0 0 200" fill="none" stroke="rgba(59, 130, 246, 0.08)" stroke-width="1"/>
+                    </pattern>
+                    <filter id="glow">
+                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                        <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                </defs>
+                <rect width="100%" height="100%" fill="#0a0f1e" />
+                <rect width="100%" height="100%" fill="url(#blueprint-grid)" />
+                <rect width="100%" height="100%" fill="url(#blueprint-grid-lg)" />
+                <g id="map-structure"></g>
+                <g id="map-lanes"></g>
+                <g id="map-slots"></g>
+                <g id="map-path"></g>
+                <g id="map-labels"></g>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Right Side Panel -->
+    <div id="side-panel" class="w-full md:w-80 glass rounded-2xl p-6 flex flex-col gap-4 border border-white/5 opacity-50 pointer-events-none transition-all duration-300 flex-shrink-0">
+        <h2 class="text-xl font-semibold mb-2" id="sp-title">Select a Slot</h2>
+        
+        <div class="bg-dark/50 rounded-xl p-4 border border-white/5 space-y-3">
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-400">Slot ID</span>
+                <span class="font-medium text-white" id="sp-slot">--</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-400">Type</span>
+                <span class="font-medium text-white" id="sp-type">--</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-400">Status</span>
+                <span class="font-medium" id="sp-status">--</span>
+            </div>
+        </div>
+
+        <div class="mt-4 hidden" id="booking-section">
+            <label class="block text-sm font-medium text-slate-300 mb-2">Duration (Hours)</label>
+            <input type="number" id="booking-hours" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-indigo-500 mb-4" value="1" min="1" max="24" onchange="updateEstimate()">
+            
+            <div class="flex justify-between items-center bg-indigo-500/10 rounded-xl p-4 border border-indigo-500/20 mb-6 font-semibold">
+                <span class="text-indigo-200">Estimated</span>
+                <span class="text-2xl text-indigo-400">₹<span id="sp-price">0</span></span>
+            </div>
+
+            <button onclick="confirmBooking()" class="w-full bg-gradient-to-r from-blue-600 to-emerald-500 hover:from-blue-500 hover:to-emerald-400 text-white font-medium py-3 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all focus:outline-none hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-95">
+                Confirm Booking
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+{% endblock %}
